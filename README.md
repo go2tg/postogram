@@ -46,3 +46,8 @@
   - MQTT - https://thingsboard.io/docs/reference/mqtt-api/
   - smtp commands - https://blog.mailtrap.io/smtp-commands-and-responses/ , https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.3.0/com.ibm.zos.v2r3.halu001/smtpcommands.htm
 
+## FAQ
+
+### Q: почему отличаются русское и английсое названия ? 
+A: Из-за игры слов русское название выглядит несколько неоднозначно. Поэтому принято решение немного его изменить так, чтобы лучше отражало сужьность проекта. Но внутри команды неофициально мы по прежнему используем неизмененное название. Просто так веселей. :) 
+
