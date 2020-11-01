@@ -43,5 +43,5 @@
   - telegram - https://core.tlgr.org/bots/api
   - skype - https://docs.microsoft.com/en-us/skype-sdk/skypeuris/skypeuriapireference
   - slack - https://api.slack.com/
-  - smtp commands - https://blog.mailtrap.io/smtp-commands-and-responses/
+  - smtp commands - https://blog.mailtrap.io/smtp-commands-and-responses/ , https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.3.0/com.ibm.zos.v2r3.halu001/smtpcommands.htm
 
