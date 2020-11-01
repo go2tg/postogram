@@ -44,4 +44,4 @@
   - skype - https://docs.microsoft.com/en-us/skype-sdk/skypeuris/skypeuriapireference
   - slack - https://api.slack.com/
   - smtp commands - https://blog.mailtrap.io/smtp-commands-and-responses/
-  - 
+
