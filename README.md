@@ -38,3 +38,10 @@
 - [ ] Dockerfile
 - [ ] Docker service (docker-compose.yml)
 - [ ] телеграм бот
+
+## API reference
+  - telegram - https://core.tlgr.org/bots/api
+  - skype - https://docs.microsoft.com/en-us/skype-sdk/skypeuris/skypeuriapireference
+  - slack - https://api.slack.com/
+  - smtp commands - https://blog.mailtrap.io/smtp-commands-and-responses/
+  - 
