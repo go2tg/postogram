@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 )
 
@@ -61,13 +62,14 @@ func handleConnection(conn net.Conn) {
 
 		if t == HELO {
 			conn.Write([]byte(R_DOMAIN))
-			return
 		}
 
 		if strings.Contains(t, MAIL_FROM) {
 			strings.Trim(t, ":")
 			fmt.Println(t)
-			return
+			re := regexp.MustCompile("\\<(.*?)\\>")
+			match := re.FindStringSubmatch(t)
+			fmt.Println(match[1])
 		}
 
 		//switch strings.TrimSpace(netData) {
