@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"net"
 	"regexp"
@@ -9,14 +10,20 @@ import (
 )
 
 const (
-	HOST = "localhost"
-	PORT = "2525"
-
-	GREETINGS = "mail.go-tg.test SMTP is glad to see you!\n"
-	HELO      = "HELO"
-	R_DOMAIN  = "250 domain name should be qualified\n"
-	MAIL_FROM = "MAIL FROM:"
-	R_        = "250 someusername@somecompany.ru sender accepted\n"
+	HOST              = "localhost"
+	PORT              = "2525"
+	GREETINGS         = "220\n"
+	HELO              = "HELO"
+	R_DOMAIN          = "250\n"
+	MAIL_FROM         = "MAIL FROM:"
+	R_                = "250\n"
+	RCPT              = "RCPT TO:"
+	R_RCPT            = "250\n"
+	DATA              = "DATA"
+	R_DATA            = "354\n"
+	QUIT              = "QUIT"
+	R_CRLF_POINT_CRLF = "250\n"
+	R_QUIT            = "221\n"
 )
 
 var (
@@ -52,59 +59,50 @@ func handleConnection(conn net.Conn) {
 			GREETINGS_COUNT++
 		}
 
-		netData, err := bufio.NewReader(conn).ReadString('\n')
+		// ... CRLF ? CR = 0x0d LF = 0x0a
+		netData, err := bufio.NewReader(conn).ReadBytes(0x0a)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+		fmt.Printf("%x", netData)
 
-		t := strings.TrimSpace(netData)
+		t := strings.TrimSpace(string(netData))
 
 		if t == HELO {
 			conn.Write([]byte(R_DOMAIN))
 		}
 
 		if strings.Contains(t, MAIL_FROM) {
-			strings.Trim(t, ":")
-			fmt.Println(t)
-			re := regexp.MustCompile("\\<(.*?)\\>")
-			match := re.FindStringSubmatch(t)
-			fmt.Println(match[1])
+			fmt.Println("FROM MAIL: ", parsCommand(t))
+			conn.Write([]byte(R_))
 		}
 
-		//switch strings.TrimSpace(netData) {
-		//case HELO:
-		//	conn.Write([]byte(R_DOMAIN))
-		//case (strings.Contains(MAIL_FROM)) :
-		//	conn.Write([]byte(R_))
-		//}
+		if strings.Contains(t, RCPT) {
+			fmt.Println("RCPT FROM: ", parsCommand(t))
+			conn.Write([]byte(R_RCPT))
+		}
+
+		if t == DATA {
+			conn.Write([]byte(R_DATA))
+		}
+
+		if bytes.Contains(netData, []byte{0x0d, 0x0a, 0x2e, 0x0d, 0x0a}) {
+			conn.Write([]byte(R_CRLF_POINT_CRLF))
+		}
+
+		if t == QUIT {
+			conn.Write([]byte(R_QUIT))
+			conn.Close()
+		}
 	}
 
 	conn.Close()
 }
 
-//func HandSend(conn net.Conn) {
-//
-//	if GREETINGS_COUNT == 1 {
-//		conn.Write([]byte(GREETINGS))
-//		GREETINGS_COUNT++
-//	}
-//
-//	netData, err := bufio.NewReader(conn).ReadString('\n')
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//
-//	switch strings.TrimSpace(netData) {
-//	case HELO:
-//		conn.Write([]byte(R_DOMAIN))
-//	}
-//
-//
-//	//temp := strings.TrimSpace(netData)
-//	//if temp == HELO {
-//	//	conn.Write([]byte(R_DOMAIN))
-//	//	return
-//	//}
-//}
+func parsCommand(t string) string {
+	strings.Trim(t, ":")
+	re := regexp.MustCompile("\\<(.*?)\\>")
+	match := re.FindStringSubmatch(t)
+	return match[1]
+}
