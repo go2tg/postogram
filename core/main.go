@@ -13,6 +13,8 @@ const (
 	HOST              = "localhost"
 	PORT              = "2525"
 	GREETINGS         = "220\n"
+	EHLO              = "EHLO"
+	R_EHLO            = "500\n"
 	HELO              = "HELO"
 	R_DOMAIN          = "250\n"
 	MAIL_FROM         = "MAIL FROM:"
@@ -59,17 +61,21 @@ func handleConnection(conn net.Conn) {
 			GREETINGS_COUNT++
 		}
 
-		// ... CRLF ? CR = 0x0d LF = 0x0a
+		// ... CRLF = CR = 0x0d + LF = 0x0a
 		netData, err := bufio.NewReader(conn).ReadBytes(0x0a)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		fmt.Printf("%x", netData)
+		fmt.Printf("%s", netData)
 
 		t := strings.TrimSpace(string(netData))
 
-		if t == HELO {
+		if strings.Contains(t, EHLO) {
+			conn.Write([]byte(R_EHLO))
+		}
+
+		if strings.Contains(t, HELO) {
 			conn.Write([]byte(R_DOMAIN))
 		}
 
@@ -87,7 +93,7 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte(R_DATA))
 		}
 
-		if bytes.Contains(netData, []byte{0x0d, 0x0a, 0x2e, 0x0d, 0x0a}) {
+		if bytes.Contains(netData, []byte{0x2e, 0x0d, 0x0a}) {
 			conn.Write([]byte(R_CRLF_POINT_CRLF))
 		}
 
