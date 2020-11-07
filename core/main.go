@@ -16,20 +16,16 @@ const (
 	EHLO              = "EHLO"
 	R_EHLO            = "500\n"
 	HELO              = "HELO"
-	R_DOMAIN          = "250\n"
+	R_HELO_DOMAIN     = "250\n"
 	MAIL_FROM         = "MAIL FROM:"
-	R_                = "250\n"
+	R_MAIL_FROM       = "250\n"
 	RCPT              = "RCPT TO:"
 	R_RCPT            = "250\n"
 	DATA              = "DATA"
 	R_DATA            = "354\n"
 	QUIT              = "QUIT"
-	R_CRLF_POINT_CRLF = "250\n"
 	R_QUIT            = "221\n"
-)
-
-var (
-	GREETINGS_COUNT = 1
+	R_CRLF_POINT_CRLF = "250\n"
 )
 
 func main() {
@@ -54,12 +50,9 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 
-	for {
+	conn.Write([]byte(GREETINGS))
 
-		if GREETINGS_COUNT == 1 {
-			conn.Write([]byte(GREETINGS))
-			GREETINGS_COUNT++
-		}
+	for {
 
 		// ... CRLF = CR = 0x0d + LF = 0x0a
 		netData, err := bufio.NewReader(conn).ReadBytes(0x0a)
@@ -67,6 +60,7 @@ func handleConnection(conn net.Conn) {
 			fmt.Println(err)
 			return
 		}
+
 		fmt.Printf("%s", netData)
 
 		t := strings.TrimSpace(string(netData))
@@ -76,12 +70,12 @@ func handleConnection(conn net.Conn) {
 		}
 
 		if strings.Contains(t, HELO) {
-			conn.Write([]byte(R_DOMAIN))
+			conn.Write([]byte(R_HELO_DOMAIN))
 		}
 
 		if strings.Contains(t, MAIL_FROM) {
 			fmt.Println("FROM MAIL: ", parsCommand(t))
-			conn.Write([]byte(R_))
+			conn.Write([]byte(R_MAIL_FROM))
 		}
 
 		if strings.Contains(t, RCPT) {
