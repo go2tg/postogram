@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	_, err = fmt.Fprintf(wc, "This is the email body")
+	_, err = fmt.Fprintf(wc, "From: Some User <someusername@somecompany.ru> To: User1 <user1@company.tld> Subject: tema Content-Type: text/plain  Hi!.")
 	if err != nil {
 		fmt.Println(err)
 	}
