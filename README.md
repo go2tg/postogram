@@ -49,3 +49,14 @@
 ### Почему отличаются русское и английсое названия ? 
 Из-за игры слов русское название выглядит несколько неоднозначно. Поэтому принято решение немного его изменить так, чтобы лучше отражало цель проекта. Но неофициально внутри команды мы по прежнему используем неизмененное название. Просто так веселей. :) 
 
+## Contributing
+
+If you'd like to contribute new features, enhancements or bug fixes to the code base just follow these steps:
+
+* Create a [GitHub](https://github.com/signup/free) account, if you don't own one already
+* Then, [fork](https://help.github.com/articles/fork-a-repo) the [nano](https://github.com/go2tg/postogram) repository to your account
+* Create a new [branch](https://help.github.com/articles/creating-and-deleting-branches-within-your-repository) from the *develop* branch in your forked repository
+* Modify the existing code, or add new code to your branch
+* When ready, make a [pull request](http://help.github.com/send-pull-requests/) to the main repository
+
+There may be some discussion regarding your contribution to the repository before any code is merged in, so be prepared to provide feedback on your contribution if required.
