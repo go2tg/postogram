@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"net"
 	"regexp"
 	"strings"
-	"sync"
 )
 
 const (
@@ -15,23 +13,28 @@ const (
 	PORT              = "2525"
 	GREETINGS         = "220 localhost.local\n"
 	EHLO              = "EHLO"
+	EHLO_PY           = "ehlo"
 	R_EHLO            = "500 \n"
 	HELO              = "HELO"
+	HELO_PY           = "helo"
 	R_HELO_DOMAIN     = "250 \n"
 	MAIL_FROM         = "MAIL FROM:"
+	MAIL_FROM_PY      = "mail FROM:"
 	R_MAIL_FROM       = "250 \n"
 	RCPT              = "RCPT TO:"
+	RCPT_PY           = "rcpt TO:"
 	R_RCPT            = "250 \n"
 	DATA              = "DATA"
+	DATA_PY           = "data"
 	R_DATA            = "354 \n"
 	R_CRLF_POINT_CRLF = "250 \n"
 	QUIT              = "QUIT"
 	R_QUIT            = "221 \n"
 )
 
-func main() {
+var CRLF = []byte{0x0d, 0x0a, 0x2e, 0x0d, 0x0a}
 
-	var w sync.WaitGroup
+func main() {
 
 	l, err := net.Listen("tcp", HOST+":"+PORT)
 	if err != nil {
@@ -47,59 +50,108 @@ func main() {
 			fmt.Println("Port error", err.Error())
 			return
 		}
-		w.Add(1)
-		go handleConnection(conn, &w) // при QUIT завершитья рутина
+		go handleConnection(conn) // при QUIT завершитья рутина
 	}
-	w.Wait() // Ждем завершения 3 рутин
 }
 
-func handleConnection(conn net.Conn, w *sync.WaitGroup) {
+func handleConnection(conn net.Conn) {
 
 	conn.Write([]byte(GREETINGS))
+	buf := make([]byte, 128)
 
 	for {
 
-		// ... CRLF = CR = 0x0d + LF = 0x0a
-		netData, err := bufio.NewReader(conn).ReadBytes(0x0a)
+		_, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println(err)
-			return
+			fmt.Println("Error read TCP: ", err)
 		}
 
-		t := strings.TrimSpace(string(netData))
+		fmt.Printf("%s", buf)
 
-		if strings.Contains(t, EHLO) || strings.Contains(t, "ehlo") {
+		t := strings.TrimSpace(string(buf))
+
+		// EHLO
+		if bytes.Equal([]byte(EHLO), buf[0:4]) || bytes.Equal([]byte(EHLO_PY), buf[0:4]) {
+			fmt.Println("EHLO - OK")
 			conn.Write([]byte(R_EHLO))
 		}
 
-		if strings.Contains(t, HELO) || strings.Contains(t, "helo") {
+		// HELO
+		if bytes.Equal([]byte(HELO), buf[0:4]) || bytes.Equal([]byte(HELO_PY), buf[0:4]) {
+			fmt.Println("HELO - OK")
 			conn.Write([]byte(R_HELO_DOMAIN))
 		}
 
-		if strings.Contains(t, MAIL_FROM) || strings.Contains(t, "mail FROM:") {
-			fmt.Println("FROM MAIL: ", parsCommand(t))
+		// MAIL FROM:
+		if bytes.Equal([]byte(MAIL_FROM), buf[0:10]) || bytes.Equal([]byte(MAIL_FROM_PY), buf[0:10]) {
+			fmt.Println("MAIL FROM: - OK ", parsCommand(t))
 			conn.Write([]byte(R_MAIL_FROM))
 		}
 
-		if strings.Contains(t, RCPT) || strings.Contains(t, "rcpt TO:") {
-			fmt.Println("RCPT TO: ", parsCommand(t))
+		// RCPT TO:
+		if bytes.Equal([]byte(RCPT), buf[0:8]) || bytes.Equal([]byte(RCPT_PY), buf[0:8]) {
+			fmt.Println("RCPT TO: - OK ", parsCommand(t))
 			conn.Write([]byte(R_RCPT))
 		}
 
-		if t == DATA || t == "data" {
+		// DATA
+		if bytes.Equal([]byte(DATA), buf[0:4]) || bytes.Equal([]byte(DATA_PY), buf[0:4]) {
+			fmt.Println("DATA - OK")
 			conn.Write([]byte(R_DATA))
 		}
 
-		if bytes.Contains(netData, []byte{0x2e, 0x0d, 0x0a}) {
+		if bytes.Contains(buf, CRLF) {
 			conn.Write([]byte(R_CRLF_POINT_CRLF))
 			fmt.Printf("%x", t)
 		}
 
-		if t == QUIT || t == "quit" {
+		if strings.Contains(t, QUIT) || strings.Contains(t, "quit:") {
 			conn.Write([]byte(R_QUIT))
 			conn.Close()
-			w.Done()
+			return
 		}
+
+		//// ... CRLF = CR = 0x0d + LF = 0x0a
+		//netData, err := bufio.NewReader(conn).ReadBytes(0x0a)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	return
+		//}
+		//
+		//t := strings.TrimSpace(string(netData))
+		//
+		//if strings.Contains(t, EHLO) || strings.Contains(t, "ehlo") {
+		//	conn.Write([]byte(R_EHLO))
+		//}
+		//
+		//if strings.Contains(t, HELO) || strings.Contains(t, "helo") {
+		//	conn.Write([]byte(R_HELO_DOMAIN))
+		//}
+		//
+		//if strings.Contains(t, MAIL_FROM) || strings.Contains(t, "mail FROM:") {
+		//	fmt.Println("FROM MAIL: ", parsCommand(t))
+		//	conn.Write([]byte(R_MAIL_FROM))
+		//}
+		//
+		//if strings.Contains(t, RCPT) || strings.Contains(t, "rcpt TO:") {
+		//	fmt.Println("RCPT TO: ", parsCommand(t))
+		//	conn.Write([]byte(R_RCPT))
+		//}
+		//
+		//if t == DATA || t == "data" {
+		//	conn.Write([]byte(R_DATA))
+		//}
+		//
+		//if bytes.Contains(netData, []byte{0x2e, 0x0d, 0x0a}) {
+		//	conn.Write([]byte(R_CRLF_POINT_CRLF))
+		//	fmt.Printf("%x", t)
+		//}
+		//
+		//if t == QUIT || t == "quit" {
+		//	conn.Write([]byte(R_QUIT))
+		//	conn.Close()
+		//	w.Done()
+		//}
 	}
 	conn.Close()
 }
