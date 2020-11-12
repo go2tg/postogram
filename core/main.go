@@ -29,10 +29,23 @@ const (
 	R_DATA            = "354 \n"
 	R_CRLF_POINT_CRLF = "250 \n"
 	QUIT              = "QUIT"
+	QUIT_PY           = "quit"
 	R_QUIT            = "221 \n"
 )
 
-var CRLF = []byte{0x0d, 0x0a, 0x2e, 0x0d, 0x0a}
+var CRLFPointCRLF = []byte{0x2e, 0x0d, 0x0a}
+
+type MailSession struct {
+	session  string
+	ehlo     bool
+	helo     bool
+	mailFrom string
+	rcptTo   string
+	data     bool
+	dataBody []byte
+	endData  bool
+	quit     bool
+}
 
 func main() {
 
@@ -44,7 +57,7 @@ func main() {
 
 	defer l.Close()
 
-	for i := 0; i < 3; i++ { // Запустить 3 коннекта
+	for {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Port error", err.Error())
@@ -56,59 +69,88 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 
+	var mail MailSession
 	conn.Write([]byte(GREETINGS))
-	buf := make([]byte, 128)
+	buf := make([]byte, 1024)
 
 	for {
+		fmt.Println(mail.quit)
 
-		_, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println("Error read TCP: ", err)
+		if mail.quit == false {
+			_, err := conn.Read(buf)
+			if err != nil {
+				fmt.Println("Error read TCP   : ", err)
+			}
 		}
 
-		fmt.Printf("%s", buf)
+		//fmt.Printf("%s", buf)
 
 		t := strings.TrimSpace(string(buf))
+
+		switch buf {
+		case buf:
+
+		}
 
 		// EHLO
 		if bytes.Equal([]byte(EHLO), buf[0:4]) || bytes.Equal([]byte(EHLO_PY), buf[0:4]) {
 			fmt.Println("EHLO - OK")
 			conn.Write([]byte(R_EHLO))
+			mail.ehlo = true
+			fmt.Println(buf)
+			buf = buf[:0]
+
 		}
 
 		// HELO
 		if bytes.Equal([]byte(HELO), buf[0:4]) || bytes.Equal([]byte(HELO_PY), buf[0:4]) {
 			fmt.Println("HELO - OK")
 			conn.Write([]byte(R_HELO_DOMAIN))
+			mail.helo = true
+			fmt.Println(buf)
 		}
 
 		// MAIL FROM:
 		if bytes.Equal([]byte(MAIL_FROM), buf[0:10]) || bytes.Equal([]byte(MAIL_FROM_PY), buf[0:10]) {
 			fmt.Println("MAIL FROM: - OK ", parsCommand(t))
 			conn.Write([]byte(R_MAIL_FROM))
+			mail.mailFrom = parsCommand(t)
+			fmt.Println(buf)
 		}
 
 		// RCPT TO:
 		if bytes.Equal([]byte(RCPT), buf[0:8]) || bytes.Equal([]byte(RCPT_PY), buf[0:8]) {
 			fmt.Println("RCPT TO: - OK ", parsCommand(t))
 			conn.Write([]byte(R_RCPT))
+			mail.rcptTo = parsCommand(t)
+			fmt.Println(buf)
 		}
 
 		// DATA
 		if bytes.Equal([]byte(DATA), buf[0:4]) || bytes.Equal([]byte(DATA_PY), buf[0:4]) {
 			fmt.Println("DATA - OK")
 			conn.Write([]byte(R_DATA))
+			mail.data = true
+			fmt.Println(buf)
 		}
 
-		if bytes.Contains(buf, CRLF) {
+		if bytes.Contains(buf, CRLFPointCRLF) {
+			fmt.Printf("%s", t)
 			conn.Write([]byte(R_CRLF_POINT_CRLF))
-			fmt.Printf("%x", t)
+			mail.endData = true
+			fmt.Println(buf)
+
 		}
 
-		if strings.Contains(t, QUIT) || strings.Contains(t, "quit:") {
+		if bytes.Equal([]byte(QUIT), buf[0:4]) || bytes.Equal([]byte(QUIT_PY), buf[0:4]) {
 			conn.Write([]byte(R_QUIT))
+			fmt.Println(buf)
+
+			mail.quit = true
 			conn.Close()
-			return
+			fmt.Println(mail)
+			break
+
 		}
 
 		//// ... CRLF = CR = 0x0d + LF = 0x0a
