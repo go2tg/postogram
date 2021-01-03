@@ -4,9 +4,24 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"sync"
+	"time"
 )
 
 func main() {
+	var wg sync.WaitGroup
+	start := time.Now()
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go XMail(&wg)
+	}
+	stop := time.Now()
+	wg.Wait()
+	fmt.Printf("Elapse time: %v ", stop.Sub(start))
+
+}
+
+func XMail(wg *sync.WaitGroup) {
 	// Connect to the remote SMTP server.
 	c, err := smtp.Dial("localhost:2525")
 	if err != nil {
@@ -40,4 +55,6 @@ func main() {
 	if err != nil {
 		log.Fatal("QUIT error", err)
 	}
+	wg.Done()
+
 }

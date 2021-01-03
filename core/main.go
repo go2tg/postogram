@@ -11,28 +11,28 @@ import (
 )
 
 const (
-	HOST              = "localhost"
-	PORT              = "2525"
-	GREETINGS         = "220 localhost.local\n"
-	EHLO              = "EHLO"
-	EHLO_PY           = "ehlo"
-	R_EHLO            = "500 \n"
-	HELO              = "HELO"
-	HELO_PY           = "helo"
-	R_HELO_DOMAIN     = "250 \n"
-	MAIL_FROM         = "MAIL FROM:"
-	MAIL_FROM_PY      = "mail FROM:"
-	R_MAIL_FROM       = "250 \n"
-	RCPT              = "RCPT TO:"
-	RCPT_PY           = "rcpt TO:"
-	R_RCPT            = "250 \n"
-	DATA              = "DATA"
-	DATA_PY           = "data"
-	R_DATA            = "354 \n"
-	R_CRLF_POINT_CRLF = "250 \n"
-	QUIT              = "QUIT"
-	QUIT_PY           = "quit"
-	R_QUIT            = "221 \n"
+	HOST           = "localhost"
+	PORT           = "2525"
+	GREETINGS      = "220 localhost.local\n"
+	EHLO           = "EHLO"
+	EhloPy         = "ehlo"
+	REhlo          = "500 \n"
+	HELO           = "HELO"
+	HeloPy         = "helo"
+	RHeloDomain    = "250 \n"
+	MailFrom       = "MAIL FROM:"
+	MailFromPy     = "mail FROM:"
+	RMailFrom      = "250 \n"
+	RCPT           = "RCPT TO:"
+	RcptPy         = "rcpt TO:"
+	RRcpt          = "250 \n"
+	DATA           = "DATA"
+	DataPy         = "data"
+	RData          = "354 \n"
+	RCrlfPointCrlf = "250 \n"
+	QUIT           = "QUIT"
+	QuitPy         = "quit"
+	RQuit          = "221 \n"
 )
 
 type MailSession struct {
@@ -71,8 +71,8 @@ func handleConnection(conn net.Conn) {
 
 	var mail MailSession
 	// Отправка приветствия
-	conn.Write([]byte(GREETINGS))
-	buf := make([]byte, 128)
+	_, _ = conn.Write([]byte(GREETINGS))
+	buf := make([]byte, 1024)
 
 	//for {
 	//fmt.Println(mail.quit)
@@ -97,58 +97,61 @@ L1:
 			//fmt.Println("")
 
 			// EHLO
-			if bytes.Equal([]byte(EHLO), msg[0:4]) || bytes.Equal([]byte(EHLO_PY), msg[0:4]) {
-				fmt.Println("EHLO - OK")
-				conn.Write([]byte(R_EHLO))
+			if bytes.Equal([]byte(EHLO), msg[0:4]) || bytes.Equal([]byte(EhloPy), msg[0:4]) {
+				//fmt.Println("EHLO - OK")
+				_, _ = conn.Write([]byte(REhlo))
 				mail.ehlo = true
 				goto L1
 			}
 
 			// HELO
-			if bytes.Equal([]byte(HELO), msg[0:4]) || bytes.Equal([]byte(HELO_PY), msg[0:4]) {
-				fmt.Println("HELO - OK")
-				conn.Write([]byte(R_HELO_DOMAIN))
+			if bytes.Equal([]byte(HELO), msg[0:4]) || bytes.Equal([]byte(HeloPy), msg[0:4]) {
+				//fmt.Println("HELO - OK")
+				_, _ = conn.Write([]byte(RHeloDomain))
 				mail.helo = true
 				goto L1
 			}
 
 			// MAIL FROM:
-			if bytes.Equal([]byte(MAIL_FROM), msg[0:10]) || bytes.Equal([]byte(MAIL_FROM_PY), msg[0:10]) {
+			if bytes.Equal([]byte(MailFrom), msg[0:10]) || bytes.Equal([]byte(MailFromPy), msg[0:10]) {
 				t := strings.TrimSpace(string(msg))
-				fmt.Println("MAIL FROM: - OK ", parsCommand(t))
-				conn.Write([]byte(R_MAIL_FROM))
+				//fmt.Println("MAIL FROM: - OK ", parsCommand(t))
+				_, _ = conn.Write([]byte(RMailFrom))
 				mail.mailFrom = parsCommand(t)
 				goto L1
 			}
 
 			// RCPT TO:
-			if bytes.Equal([]byte(RCPT), msg[0:8]) || bytes.Equal([]byte(RCPT_PY), msg[0:8]) {
+			if bytes.Equal([]byte(RCPT), msg[0:8]) || bytes.Equal([]byte(RcptPy), msg[0:8]) {
 				t := strings.TrimSpace(string(msg))
-				fmt.Println("RCPT TO: - OK ", parsCommand(t))
-				conn.Write([]byte(R_RCPT))
+				//fmt.Println("RCPT TO: - OK ", parsCommand(t))
+				_, _ = conn.Write([]byte(RRcpt))
 				mail.rcptTo = parsCommand(t)
 				goto L1
 			}
 			//
 
 			// DATA
-			if bytes.Equal([]byte(DATA), msg[0:4]) || bytes.Equal([]byte(DATA_PY), msg[0:4]) {
-				fmt.Println("DATA - OK")
-				conn.Write([]byte(R_DATA))
+			if bytes.Equal([]byte(DATA), msg[0:4]) || bytes.Equal([]byte(DataPy), msg[0:4]) {
+				//fmt.Println("DATA - OK")
+				_, _ = conn.Write([]byte(RData))
 				mail.data = true
 				goto L1
 			}
+
+			//fmt.Println(buf)
+			//fmt.Println(string(buf))
 
 			in, mes, err := CRLFPointCRLF(buf)
 			if err != nil {
 				fmt.Println(err)
 			} else {
 				if in {
-					fmt.Println("Message body - OK")
-					fmt.Println("message :", mes)
+					//fmt.Println("Message body - OK")
+					//fmt.Println("message :", mes)
 					mail.dataBody = mes
 					mail.endData = true
-					conn.Write([]byte(R_CRLF_POINT_CRLF))
+					_, _ = conn.Write([]byte(RCrlfPointCrlf))
 					//buf = buf[:0]
 					//goto L1
 
@@ -157,8 +160,9 @@ L1:
 						fmt.Println("Error read TCP   : ", err)
 					}
 
-					if bytes.Equal([]byte(QUIT), buf[0:4]) || bytes.Equal([]byte(QUIT_PY), buf[0:4]) {
-						conn.Write([]byte(R_QUIT))
+					//fmt.Println(buf)
+					if bytes.Equal([]byte(QUIT), buf[0:4]) || bytes.Equal([]byte(QuitPy), buf[0:4]) {
+						_, _ = conn.Write([]byte(RQuit))
 						mail.quit = true
 						conn.Close()
 						//fmt.Printf("%v", mail)
@@ -173,7 +177,7 @@ L1:
 	fmt.Printf("\n")
 	fmt.Printf("%v", mail)
 	fmt.Printf("\n\t\n")
-	//conn.Close()
+	conn.Close()
 }
 
 func parsCommand(t string) string {
@@ -220,7 +224,7 @@ func CRLFPointCRLF(message []byte) (b bool, mes []byte, err error) {
 // GenUUIDv4 - генерирует UUID v4
 func GenUUIDv4() string {
 	u := make([]byte, 16)
-	rand.Read(u)
+	_, _ = rand.Read(u)
 	//Set the version to 4
 	u[6] = (u[6] | 0x40) & 0x4F
 	u[8] = (u[8] | 0x80) & 0xBF
