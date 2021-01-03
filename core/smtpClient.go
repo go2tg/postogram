@@ -14,10 +14,10 @@ func main() {
 	}
 
 	// Set the sender and recipient first
-	if err := c.Mail("sender@example.org"); err != nil {
+	if err = c.Mail("sender@example.org"); err != nil {
 		fmt.Println("Sender set error", err)
 	}
-	if err := c.Rcpt("recipient@example.net"); err != nil {
+	if err = c.Rcpt("recipient@example.net"); err != nil {
 		fmt.Println("RCPT set error", err)
 	}
 
