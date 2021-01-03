@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
@@ -33,8 +34,6 @@ const (
 	QUIT_PY           = "quit"
 	R_QUIT            = "221 \n"
 )
-
-//var CRLFPointCRLF = []byte{0x2e, 0x0d, 0x0a}
 
 type MailSession struct {
 	session  string
@@ -76,7 +75,8 @@ func handleConnection(conn net.Conn) {
 	buf := make([]byte, 128)
 
 	//for {
-	fmt.Println(mail.quit)
+	//fmt.Println(mail.quit)
+	mail.session = GenUUIDv4()
 
 L1:
 
@@ -88,22 +88,19 @@ L1:
 		}
 	}
 
-	//t := strings.TrimSpace(string(buf))
-
 	b, msg, err := CRLF(buf)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		if b {
-			fmt.Printf("%s", msg)
-			fmt.Println("")
+			//fmt.Printf("%s", msg)
+			//fmt.Println("")
 
 			// EHLO
 			if bytes.Equal([]byte(EHLO), msg[0:4]) || bytes.Equal([]byte(EHLO_PY), msg[0:4]) {
 				fmt.Println("EHLO - OK")
 				conn.Write([]byte(R_EHLO))
 				mail.ehlo = true
-				fmt.Println(buf)
 				goto L1
 			}
 
@@ -112,7 +109,6 @@ L1:
 				fmt.Println("HELO - OK")
 				conn.Write([]byte(R_HELO_DOMAIN))
 				mail.helo = true
-				fmt.Println(buf)
 				goto L1
 			}
 
@@ -122,7 +118,6 @@ L1:
 				fmt.Println("MAIL FROM: - OK ", parsCommand(t))
 				conn.Write([]byte(R_MAIL_FROM))
 				mail.mailFrom = parsCommand(t)
-				fmt.Println(buf)
 				goto L1
 			}
 
@@ -132,7 +127,6 @@ L1:
 				fmt.Println("RCPT TO: - OK ", parsCommand(t))
 				conn.Write([]byte(R_RCPT))
 				mail.rcptTo = parsCommand(t)
-				fmt.Println(buf)
 				goto L1
 			}
 			//
@@ -142,7 +136,6 @@ L1:
 				fmt.Println("DATA - OK")
 				conn.Write([]byte(R_DATA))
 				mail.data = true
-				fmt.Println(buf)
 				goto L1
 			}
 
@@ -151,9 +144,10 @@ L1:
 				fmt.Println(err)
 			} else {
 				if in {
-					fmt.Println(mes)
+					fmt.Println("Message body - OK")
+					fmt.Println("message :", mes)
+					mail.dataBody = mes
 					mail.endData = true
-					fmt.Println(buf, "--")
 					conn.Write([]byte(R_CRLF_POINT_CRLF))
 					//buf = buf[:0]
 					//goto L1
@@ -165,11 +159,9 @@ L1:
 
 					if bytes.Equal([]byte(QUIT), buf[0:4]) || bytes.Equal([]byte(QUIT_PY), buf[0:4]) {
 						conn.Write([]byte(R_QUIT))
-						//fmt.Println(buf)
-
 						mail.quit = true
 						conn.Close()
-						fmt.Printf("%v", mail)
+						//fmt.Printf("%v", mail)
 					}
 
 				}
@@ -178,7 +170,10 @@ L1:
 		}
 	}
 
-	conn.Close()
+	fmt.Printf("\n")
+	fmt.Printf("%v", mail)
+	fmt.Printf("\n\t\n")
+	//conn.Close()
 }
 
 func parsCommand(t string) string {
@@ -199,8 +194,6 @@ func CRLF(message []byte) (b bool, mes []byte, err error) {
 	} else {
 		for i, v := range message {
 			if v == 0x0d && message[i+1] == 0x0A {
-				fmt.Println("CRLF")
-				fmt.Println("Position", i, i+1)
 				mes = message[0:i]
 				return true, mes, nil
 			}
@@ -216,8 +209,6 @@ func CRLFPointCRLF(message []byte) (b bool, mes []byte, err error) {
 	} else {
 		for i, v := range message {
 			if v == 0x0d && message[i+1] == 0x0a && message[i+2] == 0x2e && message[i+3] == 0x0d && message[i+4] == 0x0a {
-				fmt.Println("CRLF . CRLF")
-				fmt.Println("Position", i, "-", i+4)
 				mes = message[0:i]
 				return true, mes, nil
 			}
@@ -226,45 +217,13 @@ func CRLFPointCRLF(message []byte) (b bool, mes []byte, err error) {
 	return false, nil, nil
 }
 
-//// ... CRLF = CR = 0x0d + LF = 0x0a
-//netData, err := bufio.NewReader(conn).ReadBytes(0x0a)
-//if err != nil {
-//	fmt.Println(err)
-//	return
-//}
-//
-//t := strings.TrimSpace(string(netData))
-//
-//if strings.Contains(t, EHLO) || strings.Contains(t, "ehlo") {
-//	conn.Write([]byte(R_EHLO))
-//}
-//
-//if strings.Contains(t, HELO) || strings.Contains(t, "helo") {
-//	conn.Write([]byte(R_HELO_DOMAIN))
-//}
-//
-//if strings.Contains(t, MAIL_FROM) || strings.Contains(t, "mail FROM:") {
-//	fmt.Println("FROM MAIL: ", parsCommand(t))
-//	conn.Write([]byte(R_MAIL_FROM))
-//}
-//
-//if strings.Contains(t, RCPT) || strings.Contains(t, "rcpt TO:") {
-//	fmt.Println("RCPT TO: ", parsCommand(t))
-//	conn.Write([]byte(R_RCPT))
-//}
-//
-//if t == DATA || t == "data" {
-//	conn.Write([]byte(R_DATA))
-//}
-//
-//if bytes.Contains(netData, []byte{0x2e, 0x0d, 0x0a}) {
-//	conn.Write([]byte(R_CRLF_POINT_CRLF))
-//	fmt.Printf("%x", t)
-//}
-//
-//if t == QUIT || t == "quit" {
-//	conn.Write([]byte(R_QUIT))
-//	conn.Close()
-//	w.Done()
-//}
-//}
+// GenUUIDv4 - генерирует UUID v4
+func GenUUIDv4() string {
+	u := make([]byte, 16)
+	rand.Read(u)
+	//Set the version to 4
+	u[6] = (u[6] | 0x40) & 0x4F
+	u[8] = (u[8] | 0x80) & 0xBF
+	ss := fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:])
+	return ss
+}

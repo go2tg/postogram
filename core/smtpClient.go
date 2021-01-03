@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	_, err = fmt.Fprintf(wc, "This is the email body.")
+	_, err = fmt.Fprintf(wc, "This is the email body. 1000, 1000 23/ end")
 	if err != nil {
 		fmt.Println("Set BODY e-mail", err)
 	}
