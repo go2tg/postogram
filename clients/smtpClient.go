@@ -11,14 +11,19 @@ import (
 func main() {
 	var wg sync.WaitGroup
 	start := time.Now()
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go XMail(&wg)
+
+	for x := 0; x < 10; x++ {
+
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			time.Sleep(time.Microsecond * 1000)
+			go XMail(&wg)
+
+		}
 	}
 	stop := time.Now()
 	wg.Wait()
 	fmt.Printf("Elapse time: %v ", stop.Sub(start))
-
 }
 
 func XMail(wg *sync.WaitGroup) {

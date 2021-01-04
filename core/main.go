@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"regexp"
+	"runtime/pprof"
 	"strings"
 )
 
@@ -49,6 +51,14 @@ type MailSession struct {
 
 func main() {
 
+	cpuFile, err := os.Create("/tmp/cpuProfile.out")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	pprof.StartCPUProfile(cpuFile)
+	defer pprof.StopCPUProfile()
+
 	l, err := net.Listen("tcp", HOST+":"+PORT)
 	if err != nil {
 		fmt.Println("Port error", err.Error())
@@ -57,12 +67,13 @@ func main() {
 
 	defer l.Close()
 
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Port error", err.Error())
-			return
-		}
+	//for x := 0 ; x <1000 ; x++{
+	conn, err := l.Accept()
+	if err != nil {
+		fmt.Println("Port error", err.Error())
+		l.Close()
+		return
+		//	}
 		go handleConnection(conn) // при QUIT завершается рутина
 	}
 }
@@ -85,9 +96,11 @@ L1:
 		_, err := conn.Read(buf)
 		if err != nil {
 			fmt.Println("Error read TCP   : ", err)
+			conn.Close()
 		}
 	}
 
+	// Фильтруем команды по разделителю CRLF
 	b, msg, err := CRLF(buf)
 	if err != nil {
 		fmt.Println(err)
@@ -117,7 +130,7 @@ L1:
 				t := strings.TrimSpace(string(msg))
 				//fmt.Println("MAIL FROM: - OK ", parsCommand(t))
 				_, _ = conn.Write([]byte(RMailFrom))
-				mail.mailFrom = parsCommand(t)
+				mail.mailFrom = ParsCommand(t)
 				goto L1
 			}
 
@@ -126,7 +139,7 @@ L1:
 				t := strings.TrimSpace(string(msg))
 				//fmt.Println("RCPT TO: - OK ", parsCommand(t))
 				_, _ = conn.Write([]byte(RRcpt))
-				mail.rcptTo = parsCommand(t)
+				mail.rcptTo = ParsCommand(t)
 				goto L1
 			}
 			//
@@ -142,13 +155,12 @@ L1:
 			//fmt.Println(buf)
 			//fmt.Println(string(buf))
 
+			// Отсекаем окончание блока сообщение по CRLF.CRLF
 			in, mes, err := CRLFPointCRLF(buf)
 			if err != nil {
 				fmt.Println(err)
 			} else {
 				if in {
-					//fmt.Println("Message body - OK")
-					//fmt.Println("message :", mes)
 					mail.dataBody = mes
 					mail.endData = true
 					_, _ = conn.Write([]byte(RCrlfPointCrlf))
@@ -158,6 +170,7 @@ L1:
 					_, err = conn.Read(buf)
 					if err != nil {
 						fmt.Println("Error read TCP   : ", err)
+						conn.Close()
 					}
 
 					//fmt.Println(buf)
@@ -167,20 +180,19 @@ L1:
 						conn.Close()
 						//fmt.Printf("%v", mail)
 					}
-
 				}
 			}
 
 		}
 	}
 
-	fmt.Printf("\n")
-	fmt.Printf("%v", mail)
-	fmt.Printf("\n\t\n")
-	conn.Close()
+	//fmt.Printf("\n")
+	//fmt.Printf("%v", mail)
+	//fmt.Printf("\n\t\n")
+	//conn.Close()
 }
 
-func parsCommand(t string) string {
+func ParsCommand(t string) string {
 	strings.Trim(t, ":")
 	re := regexp.MustCompile("\\<(.*?)\\>")
 	match := re.FindStringSubmatch(t)
@@ -191,6 +203,7 @@ func parsCommand(t string) string {
 	}
 }
 
+// CRLF - поиск в массиве байт последовательности  0x0d , 0x0a
 func CRLF(message []byte) (b bool, mes []byte, err error) {
 
 	if cap(message) < 2 {
@@ -206,6 +219,7 @@ func CRLF(message []byte) (b bool, mes []byte, err error) {
 	return false, nil, nil
 }
 
+// CRLFPointCRLF - поиск в массиве байт последовательности 0x0d , 0x0a , 0x2e , 0x0d , 0x0a
 func CRLFPointCRLF(message []byte) (b bool, mes []byte, err error) {
 
 	if cap(message) < 5 {
