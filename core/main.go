@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/Syfaro/telegram-bot-api"
 	"net"
 	"os"
 	"regexp"
@@ -64,6 +65,35 @@ func main() {
 		fmt.Println("Port error", err.Error())
 		return
 	}
+
+	// --------- T-bot ----------------------------
+	bot, err := tgbotapi.NewBotAPI("1331453543:AAFQAA8JNfDWxKyt2u1E3uCfCeMQNr6Q-9k")
+	if err != nil {
+		fmt.Println("error initial Telegram Bot")
+	}
+
+	bot.Debug = true
+	fmt.Printf("Authorized on account %s", bot.Self.UserName)
+
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+	updates, err := bot.GetUpdatesChan(u)
+	for update := range updates {
+		//
+		text := "Ну что тут сказать..."
+
+		if update.Message == nil {
+			continue
+		}
+
+		fmt.Printf("[$s] $s", update.Message.From.UserName, update.Message.Text)
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+		bot.Send(msg)
+
+	}
+
+	// ----------------------------------------
 
 	defer l.Close()
 
@@ -182,7 +212,6 @@ L1:
 					}
 				}
 			}
-
 		}
 	}
 

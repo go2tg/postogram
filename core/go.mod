@@ -2,4 +2,8 @@ module core
 
 go 1.15
 
-require golang.org/dl v0.0.0-20201105230244-7f2637f4aae3 // indirect
+require (
+	github.com/Syfaro/telegram-bot-api v4.6.4+incompatible
+	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
+	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
+)
