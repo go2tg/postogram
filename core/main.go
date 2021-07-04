@@ -67,7 +67,6 @@ func main() {
 	}
 
 	// --------- T-bot ----------------------------
-	bot, err := tgbotapi.NewBotAPI("1331453543:AAFQAA8JNfDWxKyt2u1E3uCfCeMQNr6Q-9k")
 	if err != nil {
 		fmt.Println("error initial Telegram Bot")
 	}
